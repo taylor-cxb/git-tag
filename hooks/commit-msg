@@ -27,11 +27,11 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+const { execSync } = require('child_process');
 
 // Configuration (matches config.ts)
 const TICKET_PATTERN = /^[A-Z]{2,10}-\d{2,10}/;
-const MESSAGE_FORMAT = '{prefix} {message}';
+const BRANCH_TICKET_PATTERN = /[A-Z]{2,10}-\d{2,10}/;
 
 // Read commit message from file
 const commitMsgFile = process.argv[2];
@@ -42,21 +42,41 @@ if (commitMsg.startsWith('Merge')) {
   process.exit(0);
 }
 
+// Get current branch name
+let branchName;
+try {
+  branchName = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+} catch (error) {
+  // If we can't get branch name, allow commit
+  process.exit(0);
+}
+
+// Check if branch name contains a ticket
+const branchHasTicket = BRANCH_TICKET_PATTERN.test(branchName);
+
 // Check if message has ticket prefix
 const hasPrefix = TICKET_PATTERN.test(commitMsg);
 
 if (!hasPrefix) {
-  console.error('\n❌ Commit rejected: Missing ticket prefix\n');
-  console.error('Expected format: JIRA-123 Your commit message');
-  console.error('                 ^^^^^^^^');
-  console.error('                 Required prefix\n');
-  console.error('Examples:');
-  console.error('  ✅ JIRA-123 Add user authentication');
-  console.error('  ✅ NFOR-456 Fix login bug');
-  console.error('  ❌ Add user authentication\n');
-  console.error('Tip: Use git-tag to add prefixes to existing commits:');
-  console.error('  git-tag --ticket=JIRA-123\n');
-  process.exit(1);
+  if (branchHasTicket) {
+    // ENFORCE: Branch has ticket, reject commit without prefix
+    console.error('\n❌ Commit rejected: Missing ticket prefix\n');
+    console.error('Expected format: JIRA-123 Your commit message');
+    console.error('                 ^^^^^^^^');
+    console.error('                 Required prefix\n');
+    console.error('Examples:');
+    console.error('  ✅ JIRA-123 Add user authentication');
+    console.error('  ✅ NFOR-456 Fix login bug');
+    console.error('  ❌ Add user authentication\n');
+    console.error('Tip: Use git-tag to add prefixes to existing commits:');
+    console.error('  git-tag --ticket=JIRA-123\n');
+    process.exit(1);
+  } else {
+    // WARN: Branch has no ticket, allow but warn
+    console.warn('\n⚠️  Warning: Commit message missing ticket prefix');
+    console.warn('Consider adding a ticket reference for better traceability.\n');
+    process.exit(0);
+  }
 }
 
 // Commit message is valid

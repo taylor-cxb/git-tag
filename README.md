@@ -86,17 +86,23 @@ git-tag --dry-run
 
 ## Git Hooks
 
-### 1. commit-msg (Enforce on Commit)
+### 1. commit-msg (Smart Enforcement)
 
-Rejects commits without ticket prefixes:
+Enforces ticket prefixes only when your branch name contains a ticket number:
 
 ```bash
 cp ~/Utils/git-tag/hooks/commit-msg .git/hooks/
 chmod +x .git/hooks/commit-msg
 
-git commit -m "Add feature"           # ❌ Rejected
+# On branch feat/JIRA-123-add-feature (has ticket)
+git commit -m "Add feature"           # ❌ Rejected - branch has ticket
 git commit -m "JIRA-123 Add feature"  # ✅ Accepted
-# Or bypass: git commit -m "Add feature" --no-verify
+
+# On branch main or develop (no ticket)
+git commit -m "Add feature"           # ⚠️  Warning but allowed
+
+# Bypass check entirely:
+git commit -m "Add feature" --no-verify
 ```
 
 ### 2. pre-push (Warn Before Push)
