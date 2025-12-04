@@ -71,24 +71,33 @@ export async function getBranchCommits(baseBranch?: string): Promise<Array<{ has
 }
 
 /**
- * Rewrite commit messages using git rebase
+ * Rewrite commit messages using git filter-branch
+ * @param baseBranch - Base branch to compare against (main/master)
+ * @param prefix - Ticket prefix to add/replace (e.g., JIRA-123)
+ * @param replaceExisting - If true, replace existing prefixes; if false, skip commits with prefixes
  */
 export async function rewriteCommitMessages(
   baseBranch: string,
-  prefix: string
+  prefix: string,
+  replaceExisting: boolean = false
 ): Promise<void> {
   try {
-    // Use git filter-branch to rewrite commit messages
-    // This rewrites all commits from base branch to HEAD
-    const script = `
-      msg="$(cat)"
-      # Check if message already has a prefix pattern
-      if ! echo "$msg" | grep -qE '^[A-Z]{2,10}-[0-9]{2,10}'; then
-        echo "${prefix} $msg"
-      else
-        echo "$msg"
-      fi
-    `;
+    const script = replaceExisting
+      ? `
+        msg="$(cat)"
+        # Replace existing prefix or add new one
+        # Remove any existing prefix pattern and add the new one
+        echo "$msg" | sed -E 's/^[A-Z]{2,10}-[0-9]{2,10} //' | sed "s/^/${prefix} /"
+      `
+      : `
+        msg="$(cat)"
+        # Only add prefix if none exists
+        if ! echo "$msg" | grep -qE '^[A-Z]{2,10}-[0-9]{2,10}'; then
+          echo "${prefix} $msg"
+        else
+          echo "$msg"
+        fi
+      `;
 
     // Execute git filter-branch
     await git.raw([

@@ -20,12 +20,14 @@ program
   .version('1.0.0')
   .option('--ticket <ticket>', 'Manually specify ticket number (e.g., JIRA-123)')
   .option('--prefix <prefix>', 'Use custom prefix instead of ticket number')
+  .option('--replace', 'Replace existing ticket prefixes instead of skipping them')
   .option('--dry-run', 'Show what would be changed without modifying commits')
   .parse(process.argv);
 
 const options = program.opts<{
   ticket?: string;
   prefix?: string;
+  replace?: boolean;
   dryRun?: boolean;
 }>();
 
@@ -89,14 +91,24 @@ async function main() {
     console.log(chalk.blue(`Found ${commits.length} commit(s)\n`));
 
     // Check which commits need updating
-    const commitsToUpdate = commits.filter(commit => !hasPrefix(commit.message));
+    const commitsWithPrefix = commits.filter(commit => hasPrefix(commit.message));
+    const commitsWithoutPrefix = commits.filter(commit => !hasPrefix(commit.message));
+
+    // Determine which commits will be changed
+    const commitsToUpdate = options.replace
+      ? commits  // Replace mode: update all commits
+      : commitsWithoutPrefix;  // Normal mode: only commits without prefix
 
     if (commitsToUpdate.length === 0) {
       console.log(chalk.green('✓ All commits already have ticket prefix!'));
       process.exit(0);
     }
 
-    console.log(chalk.yellow(`${commitsToUpdate.length} commit(s) need prefix:\n`));
+    if (options.replace && commitsWithPrefix.length > 0) {
+      console.log(chalk.yellow(`🔄 Replace mode: Will update all ${commits.length} commit(s)\n`));
+    } else {
+      console.log(chalk.yellow(`${commitsToUpdate.length} commit(s) need prefix:\n`));
+    }
 
     // Show what will be changed (like rebase -i)
     console.log(chalk.bold('Commits to be rewritten:\n'));
@@ -104,14 +116,25 @@ async function main() {
     let commitNumber = 1;
     commits.forEach(commit => {
       const hasTicket = hasPrefix(commit.message);
+      const willUpdate = options.replace || !hasTicket;
 
-      if (!hasTicket) {
-        const newMessage = formatCommitMessage(prefix, commit.message);
-        console.log(chalk.gray(`Commit ${commitNumber} of ${commits.length} (${commit.shortHash})`));
-        console.log(chalk.red(`  - ${commit.message}`));
-        console.log(chalk.green(`  + ${newMessage}`));
+      console.log(chalk.gray(`Commit ${commitNumber} of ${commits.length} (${commit.shortHash})`));
+
+      if (willUpdate) {
+        let newMessage: string;
+        if (hasTicket && options.replace) {
+          // Replace existing prefix
+          const messageWithoutPrefix = commit.message.replace(/^[A-Z]{2,10}-\d{2,10}\s+/, '');
+          newMessage = formatCommitMessage(prefix, messageWithoutPrefix);
+          console.log(chalk.yellow(`  ~ ${commit.message}`));
+          console.log(chalk.green(`  → ${newMessage}`));
+        } else {
+          // Add new prefix
+          newMessage = formatCommitMessage(prefix, commit.message);
+          console.log(chalk.red(`  - ${commit.message}`));
+          console.log(chalk.green(`  + ${newMessage}`));
+        }
       } else {
-        console.log(chalk.gray(`Commit ${commitNumber} of ${commits.length} (${commit.shortHash})`));
         console.log(chalk.blue(`  ✓ ${commit.message} (already has prefix, skipped)`));
       }
       console.log('');
@@ -125,8 +148,9 @@ async function main() {
 
     // Ask for confirmation
     const confirm = require('@inquirer/confirm').default;
+    const action = options.replace ? 'Replace/add prefix for' : 'Rewrite';
     const shouldRewrite = await confirm({
-      message: `Rewrite ${commitsToUpdate.length} commit(s) with prefix "${prefix}"?`,
+      message: `${action} ${commitsToUpdate.length} commit(s) with prefix "${prefix}"?`,
       default: false,
     });
 
@@ -141,7 +165,7 @@ async function main() {
     // Perform the rewrite
     console.log(chalk.blue('\n⚙ Rewriting commits...'));
     const baseBranch = await findBaseBranch();
-    await rewriteCommitMessages(baseBranch, prefix);
+    await rewriteCommitMessages(baseBranch, prefix, options.replace || false);
 
     console.log(chalk.green(`✓ Successfully rewrote ${commitsToUpdate.length} commit(s)!`));
     console.log(chalk.gray('\nUse git log to verify the changes'));

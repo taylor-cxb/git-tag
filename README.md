@@ -42,6 +42,16 @@ git-tag --ticket=JIRA-123
 git-tag --prefix=RELEASE_V2
 ```
 
+### Replace existing prefixes
+
+```bash
+# Fix incorrect ticket numbers
+git-tag --ticket=JIRA-124 --replace
+
+# Before: TOOL-123 fix bug in validation
+# After:  JIRA-124 fix bug in validation
+```
+
 ### Dry run
 
 ```bash
