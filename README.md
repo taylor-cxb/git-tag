@@ -2,6 +2,10 @@
 
 Automatically add ticket prefixes (JIRA-123, NFOR-456, etc.) to git commits on your current branch.
 
+> **⚠️ Important:**
+> - **Use BEFORE merging** - git-tag rewrites commit history and should only be used before your branch is merged. After merging, create new tickets for new work.
+> - **Hooks are optional** - The git hooks (commit-msg, pre-push, prepare-commit-msg) are independent of the CLI tool. Install only the ones you need.
+
 > **Note:** Ticket numbers can appear anywhere in your commit message. Examples:
 > - `JIRA-123 Add feature` ✅
 > - `Add feature JIRA-123` ✅
