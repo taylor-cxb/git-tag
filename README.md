@@ -15,6 +15,12 @@ Automatically add ticket prefixes (JIRA-123, NFOR-456, etc.) to git commits on y
   - Cleans up git filter-branch backup refs
   - Requires `--force` flag for pushed branches
 
+## Demo
+
+![Demo](demo.gif)
+
+> **Recording**: Shows the complete workflow from unprefixed commits to prefixed commits
+
 ## Why Ticket Prefixes Matter: Autolink References
 
 One of the biggest benefits of consistently adding ticket prefixes with git-tag is taking advantage of **GitHub's autolink references**.
@@ -25,6 +31,8 @@ Autolink references automatically convert text patterns in your commits and PRs 
 - Any custom pattern you define in repository settings
 
 When you use git-tag to add proper ticket references to all your commits, GitHub will automatically link them throughout your commit history and PRs, making it easy to trace changes back to requirements and discussions.
+
+![Autolink References](auto-link.webp)
 
 **Learn more:** [Configuring autolinks to reference external resources](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/configuring-autolinks-to-reference-external-resources)
 
