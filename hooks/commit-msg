@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+/**
+ * Git commit-msg hook
+ * Enforces ticket prefix in commit messages
+ *
+ * Install: Copy to .git/hooks/commit-msg and chmod +x
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Configuration (matches config.ts)
+const TICKET_PATTERN = /^[A-Z]{2,10}-\d{2,10}/;
+const MESSAGE_FORMAT = '{prefix} {message}';
+
+// Read commit message from file
+const commitMsgFile = process.argv[2];
+const commitMsg = fs.readFileSync(commitMsgFile, 'utf-8').trim();
+
+// Skip merge commits
+if (commitMsg.startsWith('Merge')) {
+  process.exit(0);
+}
+
+// Check if message has ticket prefix
+const hasPrefix = TICKET_PATTERN.test(commitMsg);
+
+if (!hasPrefix) {
+  console.error('\n❌ Commit rejected: Missing ticket prefix\n');
+  console.error('Expected format: JIRA-123 Your commit message');
+  console.error('                 ^^^^^^^^');
+  console.error('                 Required prefix\n');
+  console.error('Examples:');
+  console.error('  ✅ JIRA-123 Add user authentication');
+  console.error('  ✅ NFOR-456 Fix login bug');
+  console.error('  ❌ Add user authentication\n');
+  console.error('Tip: Use git-tag to add prefixes to existing commits:');
+  console.error('  git-tag --ticket=JIRA-123\n');
+  process.exit(1);
+}
+
+// Commit message is valid
+process.exit(0);
