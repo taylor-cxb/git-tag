@@ -29,21 +29,22 @@ export async function findBaseBranch(): Promise<string> {
 /**
  * Get commits on current branch since divergence from base branch
  * Uses: base=$(git merge-base HEAD main); git log $base..HEAD
+ * Excludes merge commits automatically
  */
-export async function getBranchCommits(baseBranch?: string): Promise<Array<{ hash: string; message: string; shortHash: string }>> {
+export async function getBranchCommits(baseBranch?: string): Promise<Array<{ hash: string; message: string; shortHash: string; isMerge: boolean }>> {
   const base = baseBranch || await findBaseBranch();
 
   try {
     // Find where current branch diverged from base
-    // Same as: base=$(git merge-base HEAD main)
     const mergeBase = await git.raw(['merge-base', 'HEAD', base]);
     const mergeBaseHash = mergeBase.trim();
 
-    // Get commits unique to this branch
-    // Same as: git log --pretty=format:"%H|%s" $base..HEAD
+    // Get commits with parent count to detect merges
+    // Format: hash|subject|parent_count
     const logOutput = await git.raw([
       'log',
-      '--pretty=format:%H|%s',  // hash|subject
+      '--pretty=format:%H|%s|%P',  // hash|subject|parents
+      '--no-merges',  // Skip merge commits
       `${mergeBaseHash}..HEAD`
     ]);
 
@@ -57,11 +58,16 @@ export async function getBranchCommits(baseBranch?: string): Promise<Array<{ has
       .split('\n')
       .reverse()
       .map(line => {
-        const [hash, message] = line.split('|');
+        const parts = line.split('|');
+        const hash = parts[0];
+        const message = parts[1] || '';
+        const parents = parts[2] || '';
+
         return {
           hash,
           shortHash: hash.substring(0, 7),
-          message: message || '',
+          message,
+          isMerge: parents.split(' ').length > 1,
         };
       });
 
@@ -119,4 +125,41 @@ export async function rewriteCommitMessages(
 export async function isClean(): Promise<boolean> {
   const status = await git.status();
   return status.isClean();
+}
+
+/**
+ * Check if current branch has been pushed to remote
+ */
+export async function hasRemote(): Promise<boolean> {
+  try {
+    const status = await git.status();
+    return status.tracking !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if current branch has unpushed commits
+ */
+export async function hasUnpushedCommits(): Promise<boolean> {
+  try {
+    const status = await git.status();
+    return status.ahead > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Clean up git filter-branch backup refs
+ */
+export async function cleanupBackupRefs(): Promise<void> {
+  try {
+    await git.raw(['for-each-ref', '--format=%(refname)', 'refs/original/']);
+    // Delete all backup refs
+    await git.raw(['update-ref', '-d', 'refs/original/refs/heads/*']);
+  } catch (error) {
+    // Ignore errors - backup refs might not exist
+  }
 }

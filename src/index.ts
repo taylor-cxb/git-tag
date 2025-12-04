@@ -12,6 +12,8 @@ import {
   getCurrentBranch,
   getBranchCommits,
   isClean,
+  hasRemote,
+  cleanupBackupRefs,
 } from './git-utils';
 
 program
@@ -21,6 +23,7 @@ program
   .option('--ticket <ticket>', 'Manually specify ticket number (e.g., JIRA-123)')
   .option('--prefix <prefix>', 'Use custom prefix instead of ticket number')
   .option('--replace', 'Replace existing ticket prefixes instead of skipping them')
+  .option('--force', 'Allow rewriting commits that have been pushed to remote')
   .option('--dry-run', 'Show what would be changed without modifying commits')
   .parse(process.argv);
 
@@ -28,6 +31,7 @@ const options = program.opts<{
   ticket?: string;
   prefix?: string;
   replace?: boolean;
+  force?: boolean;
   dryRun?: boolean;
 }>();
 
@@ -79,7 +83,21 @@ async function main() {
       process.exit(1);
     }
 
-    // Get commits on current branch
+    // Check if branch has been pushed to remote
+    const hasRemoteBranch = await hasRemote();
+    if (hasRemoteBranch && !options.force && !options.dryRun) {
+      console.error(chalk.red('✗ This branch has been pushed to remote'));
+      console.error(chalk.yellow('\n⚠️  Rewriting history will require force-push!'));
+      console.error(chalk.gray('\nThis will:'));
+      console.error(chalk.gray('  • Change all commit hashes'));
+      console.error(chalk.gray('  • Break the branch for anyone who has pulled it'));
+      console.error(chalk.gray('  • Require: git push --force-with-lease\n'));
+      console.error(chalk.cyan('To proceed anyway, use: --force'));
+      console.error(chalk.gray('Example: git-tag --ticket=JIRA-123 --force\n'));
+      process.exit(1);
+    }
+
+    // Get commits on current branch (excluding merges)
     console.log(chalk.blue('\n⚙ Fetching commits on current branch...'));
     const commits = await getBranchCommits();
 
@@ -88,7 +106,12 @@ async function main() {
       process.exit(0);
     }
 
-    console.log(chalk.blue(`Found ${commits.length} commit(s)\n`));
+    const mergeCount = commits.filter(c => c.isMerge).length;
+    console.log(chalk.blue(`Found ${commits.length} commit(s)`));
+    if (mergeCount > 0) {
+      console.log(chalk.gray(`(${mergeCount} merge commit(s) automatically skipped)`));
+    }
+    console.log('');
 
     // Check which commits need updating
     const commitsWithPrefix = commits.filter(commit => hasPrefix(commit.message));
@@ -167,9 +190,19 @@ async function main() {
     const baseBranch = await findBaseBranch();
     await rewriteCommitMessages(baseBranch, prefix, options.replace || false);
 
-    console.log(chalk.green(`✓ Successfully rewrote ${commitsToUpdate.length} commit(s)!`));
+    // Clean up backup refs
+    console.log(chalk.blue('⚙ Cleaning up backup refs...'));
+    await cleanupBackupRefs();
+
+    console.log(chalk.green(`\n✓ Successfully rewrote ${commitsToUpdate.length} commit(s)!`));
     console.log(chalk.gray('\nUse git log to verify the changes'));
-    console.log(chalk.yellow('Note: If you need to undo, use: git reflog and git reset --hard <commit>'));
+
+    if (hasRemoteBranch) {
+      console.log(chalk.yellow('\n⚠️  Remember to force-push:'));
+      console.log(chalk.cyan('  git push --force-with-lease\n'));
+    }
+
+    console.log(chalk.gray('To undo: git reflog and git reset --hard <commit>'));
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
