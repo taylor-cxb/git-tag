@@ -5,6 +5,8 @@
  * Enforces ticket prefix in commit messages
  *
  * Install: Copy to .git/hooks/commit-msg and chmod +x
+ *   cp ~/Utils/git-tag/hooks/commit-msg .git/hooks/commit-msg
+ *   chmod +x .git/hooks/commit-msg
  *
  * Uninstall: Remove the hook file
  *   rm .git/hooks/commit-msg

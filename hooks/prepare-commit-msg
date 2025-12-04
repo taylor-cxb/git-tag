@@ -5,6 +5,11 @@
  * Auto-adds ticket prefix from branch name to commit message
  *
  * Install: Copy to .git/hooks/prepare-commit-msg and chmod +x
+ *   cp ~/Utils/git-tag/hooks/prepare-commit-msg .git/hooks/prepare-commit-msg
+ *   chmod +x .git/hooks/prepare-commit-msg
+ *
+ * Uninstall: Remove the hook file
+ *   rm .git/hooks/prepare-commit-msg
  *
  * This hook runs BEFORE the commit message editor opens,
  * so it pre-fills the message with the ticket prefix.

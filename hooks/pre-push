@@ -5,6 +5,8 @@
  * Warns if you're about to push commits without ticket prefixes
  *
  * Install: Copy to .git/hooks/pre-push and chmod +x
+ *   cp ~/Utils/git-tag/hooks/pre-push .git/hooks/pre-push
+ *   chmod +x .git/hooks/pre-push
  *
  * Uninstall: Remove the hook file
  *   rm .git/hooks/pre-push
