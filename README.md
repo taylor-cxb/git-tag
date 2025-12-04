@@ -2,6 +2,11 @@
 
 Automatically add ticket prefixes (JIRA-123, NFOR-456, etc.) to git commits on your current branch.
 
+> **Note:** Ticket numbers can appear anywhere in your commit message. Examples:
+> - `JIRA-123 Add feature` ✅
+> - `Add feature JIRA-123` ✅
+> - `RELEASE_0.3.1 JIRA-123 some message` ✅
+
 ## Features
 
 - 🎯 **Auto-detect ticket** from branch name
@@ -105,17 +110,25 @@ git commit -m "Add feature"           # ⚠️  Warning but allowed
 git commit -m "Add feature" --no-verify
 ```
 
-### 2. pre-push (Warn Before Push)
+### 2. pre-push (Smart Warning)
 
-Warns if you're about to push commits without prefixes:
+Warns about unprefixed commits only when pushing a branch with a ticket number:
 
 ```bash
 cp ~/Utils/git-tag/hooks/pre-push .git/hooks/
 chmod +x .git/hooks/pre-push
 
-git push  # ⚠️ Warns about unprefixed commits
-# Fix: git-tag --ticket=JIRA-123
-# Or bypass: git push --no-verify
+# On branch feat/JIRA-123-add-feature (has ticket)
+git push  # ⚠️ Warns if commits lack prefixes
+
+# On branch main or develop (no ticket)
+git push  # No warning - passes through
+
+# Fix warnings:
+git-tag --ticket=JIRA-123
+
+# Or bypass check:
+git push --no-verify
 ```
 
 ### 3. prepare-commit-msg (Auto-Add Prefix)
@@ -145,8 +158,8 @@ Edit `src/config.ts` to customize:
 
 ```typescript
 export const DEFAULT_CONFIG = {
-  // Ticket pattern (2-10 caps, dash, 2-10 numbers)
-  ticketPattern: /^[A-Z]{2,10}-\d{2,10}$/,
+  // Ticket pattern (matches anywhere in commit message)
+  ticketPattern: /[A-Z]{2,10}-\d{2,10}/,
 
   // Message format
   messageFormat: '{prefix} {message}',

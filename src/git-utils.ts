@@ -91,14 +91,14 @@ export async function rewriteCommitMessages(
     const script = replaceExisting
       ? `
         msg="$(cat)"
-        # Replace existing prefix or add new one
-        # Remove any existing prefix pattern and add the new one
-        echo "$msg" | sed -E 's/^[A-Z]{2,10}-[0-9]{2,10} //' | sed "s/^/${prefix} /"
+        # Replace existing ticket or add new one
+        # Remove any existing ticket pattern (anywhere in message) and add the new one
+        echo "$msg" | sed -E 's/[A-Z]{2,10}-[0-9]{2,10} ?//' | sed "s/^/${prefix} /"
       `
       : `
         msg="$(cat)"
-        # Only add prefix if none exists
-        if ! echo "$msg" | grep -qE '^[A-Z]{2,10}-[0-9]{2,10}'; then
+        # Only add prefix if no ticket exists anywhere in message
+        if ! echo "$msg" | grep -qE '[A-Z]{2,10}-[0-9]{2,10}'; then
           echo "${prefix} $msg"
         else
           echo "$msg"

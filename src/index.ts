@@ -146,8 +146,8 @@ async function main() {
       if (willUpdate) {
         let newMessage: string;
         if (hasTicket && options.replace) {
-          // Replace existing prefix
-          const messageWithoutPrefix = commit.message.replace(/^[A-Z]{2,10}-\d{2,10}\s+/, '');
+          // Replace existing ticket (from anywhere in message)
+          const messageWithoutPrefix = commit.message.replace(/[A-Z]{2,10}-\d{2,10}\s*/, '');
           newMessage = formatCommitMessage(prefix, messageWithoutPrefix);
           console.log(chalk.yellow(`  ~ ${commit.message}`));
           console.log(chalk.green(`  → ${newMessage}`));

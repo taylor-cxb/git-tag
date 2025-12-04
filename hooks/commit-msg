@@ -30,7 +30,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 // Configuration (matches config.ts)
-const TICKET_PATTERN = /^[A-Z]{2,10}-\d{2,10}/;
+const TICKET_PATTERN = /[A-Z]{2,10}-\d{2,10}/; // Match anywhere in message
 const BRANCH_TICKET_PATTERN = /[A-Z]{2,10}-\d{2,10}/;
 
 // Read commit message from file

@@ -48,9 +48,9 @@ const ticket = ticketMatch[1];
 // Read current commit message
 let commitMsg = fs.readFileSync(commitMsgFile, 'utf-8');
 
-// Check if message already has a ticket prefix
-if (/^[A-Z]{2,10}-\d{2,10}/.test(commitMsg)) {
-  // Already has prefix, don't modify
+// Check if message already has a ticket anywhere
+if (/[A-Z]{2,10}-\d{2,10}/.test(commitMsg)) {
+  // Already has ticket, don't modify
   process.exit(0);
 }
 

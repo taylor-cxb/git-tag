@@ -18,7 +18,8 @@
 const { execSync } = require('child_process');
 
 // Configuration (matches config.ts)
-const TICKET_PATTERN = /^[A-Z]{2,10}-\d{2,10}/;
+const TICKET_PATTERN = /[A-Z]{2,10}-\d{2,10}/; // Match anywhere in message
+const BRANCH_TICKET_PATTERN = /[A-Z]{2,10}-\d{2,10}/;
 
 /**
  * Get commits that will be pushed
@@ -96,8 +97,17 @@ for (const line of lines) {
   const [localRef, localSha, remoteRef, remoteSha] = line.split(' ');
 
   // Extract branch names
+  const localBranch = localRef.replace('refs/heads/', '');
   const remoteBranch = remoteRef.replace('refs/heads/', '');
   const remote = 'origin'; // Assume origin
+
+  // Check if branch name contains a ticket
+  const branchHasTicket = BRANCH_TICKET_PATTERN.test(localBranch);
+
+  // Only check commits if branch has a ticket
+  if (!branchHasTicket) {
+    continue; // Skip checking - branch has no ticket requirement
+  }
 
   // Get commits to be pushed
   const commits = getCommitsToPush(remote, remoteBranch);

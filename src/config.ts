@@ -16,8 +16,8 @@ export interface GitTagConfig {
 
 // Default configuration
 export const DEFAULT_CONFIG: GitTagConfig = {
-  // Matches: JIRA-123, NFOR-45, ABC-9999, etc.
-  ticketPattern: /^[A-Z]{2,10}-\d{2,10}$/,
+  // Matches: JIRA-123, NFOR-45, ABC-9999, etc. (anywhere in message)
+  ticketPattern: /[A-Z]{2,10}-\d{2,10}/,
 
   // Message format: "JIRA-123 commit message"
   messageFormat: '{prefix} {message}',
@@ -56,10 +56,9 @@ export function isValidTicket(ticket: string, pattern?: RegExp): boolean {
 }
 
 /**
- * Check if commit message already has a prefix
+ * Check if commit message contains a ticket (anywhere in message)
  */
 export function hasPrefix(message: string, pattern?: RegExp): boolean {
   const regex = pattern || DEFAULT_CONFIG.ticketPattern;
-  const firstWord = message.split(' ')[0];
-  return regex.test(firstWord);
+  return regex.test(message);
 }
