@@ -1,7 +1,7 @@
 {
   "name": "git-tag",
   "version": "1.0.0",
-  "description": "Automatically add ticket prefixes to git commits",
+  "description": "Automatically add ticket prefixes to git commits - banana",
   "main": "dist/index.js",
   "type": "commonjs",
   "bin": {
