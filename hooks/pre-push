@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+
+/**
+ * Git pre-push hook
+ * Warns if you're about to push commits without ticket prefixes
+ *
+ * Install: Copy to .git/hooks/pre-push and chmod +x
+ *
+ * Uninstall: Remove the hook file
+ *   rm .git/hooks/pre-push
+ *
+ * Bypass (one-time): Use --no-verify flag
+ *   git push --no-verify
+ */
+
+const { execSync } = require('child_process');
+
+// Configuration (matches config.ts)
+const TICKET_PATTERN = /^[A-Z]{2,10}-\d{2,10}/;
+
+/**
+ * Get commits that will be pushed
+ */
+function getCommitsToPush(remote, remoteBranch) {
+  try {
+    // Get commits that exist locally but not on remote
+    // Format: hash|subject
+    const output = execSync(
+      `git log ${remote}/${remoteBranch}..HEAD --pretty=format:"%H|%s" 2>/dev/null || git log HEAD --pretty=format:"%H|%s"`,
+      { encoding: 'utf-8' }
+    );
+
+    if (!output.trim()) {
+      return [];
+    }
+
+    return output.split('\n').map(line => {
+      const [hash, message] = line.split('|');
+      return { hash: hash.substring(0, 7), message };
+    });
+  } catch (error) {
+    // If remote branch doesn't exist, get all commits
+    try {
+      const output = execSync(
+        `git log HEAD --pretty=format:"%H|%s"`,
+        { encoding: 'utf-8' }
+      );
+      return output.split('\n').map(line => {
+        const [hash, message] = line.split('|');
+        return { hash: hash.substring(0, 7), message };
+      });
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Check if commit message has ticket prefix
+ */
+function hasTicketPrefix(message) {
+  // Skip merge commits
+  if (message.startsWith('Merge')) {
+    return true;
+  }
+  return TICKET_PATTERN.test(message);
+}
+
+// Read stdin to get push details
+// Format: <local ref> <local sha> <remote ref> <remote sha>
+let input = '';
+try {
+  const stdin = process.stdin;
+  stdin.setEncoding('utf8');
+
+  // Read all input synchronously
+  const fs = require('fs');
+  input = fs.readFileSync(0, 'utf-8');
+} catch (error) {
+  // If can't read stdin, exit successfully (don't block push)
+  process.exit(0);
+}
+
+if (!input.trim()) {
+  // No input means nothing to push
+  process.exit(0);
+}
+
+const lines = input.trim().split('\n');
+let hasUnprefixedCommits = false;
+const unprefixedCommits = [];
+
+for (const line of lines) {
+  const [localRef, localSha, remoteRef, remoteSha] = line.split(' ');
+
+  // Extract branch names
+  const remoteBranch = remoteRef.replace('refs/heads/', '');
+  const remote = 'origin'; // Assume origin
+
+  // Get commits to be pushed
+  const commits = getCommitsToPush(remote, remoteBranch);
+
+  // Check each commit for ticket prefix
+  for (const commit of commits) {
+    if (!hasTicketPrefix(commit.message)) {
+      hasUnprefixedCommits = true;
+      unprefixedCommits.push(commit);
+    }
+  }
+}
+
+if (hasUnprefixedCommits) {
+  console.error('\n⚠️  WARNING: Some commits lack ticket prefixes!\n');
+  console.error(`Found ${unprefixedCommits.length} commit(s) without ticket prefix:\n`);
+
+  // Show first 5 commits
+  const toShow = unprefixedCommits.slice(0, 5);
+  toShow.forEach(commit => {
+    console.error(`  ${commit.hash} - ${commit.message}`);
+  });
+
+  if (unprefixedCommits.length > 5) {
+    console.error(`  ... and ${unprefixedCommits.length - 5} more\n`);
+  }
+
+  console.error('\n💡 Fix this by running:');
+  console.error('  git-tag --ticket=JIRA-123');
+  console.error('  (or let git-tag auto-detect from branch name)\n');
+  console.error('To push anyway, use: git push --no-verify\n');
+
+  process.exit(1);
+}
+
+// All commits have prefixes
+process.exit(0);

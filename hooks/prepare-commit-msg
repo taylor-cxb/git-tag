@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+/**
+ * Git prepare-commit-msg hook
+ * Auto-adds ticket prefix from branch name to commit message
+ *
+ * Install: Copy to .git/hooks/prepare-commit-msg and chmod +x
+ *
+ * This hook runs BEFORE the commit message editor opens,
+ * so it pre-fills the message with the ticket prefix.
+ */
+
+const fs = require('fs');
+const { execSync } = require('child_process');
+
+// Get commit message file and commit type
+const commitMsgFile = process.argv[2];
+const commitSource = process.argv[3]; // commit, message, merge, squash, or undefined
+
+// Don't modify message for merges, amendments, or if message already provided
+if (commitSource === 'merge' || commitSource === 'squash' || commitSource === 'commit') {
+  process.exit(0);
+}
+
+// Get current branch name
+let branchName;
+try {
+  branchName = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+} catch {
+  process.exit(0);
+}
+
+// Extract ticket from branch name (e.g., feat/JIRA-123-description -> JIRA-123)
+const ticketMatch = branchName.match(/([A-Z]{2,10}-\d{2,10})/);
+
+if (!ticketMatch) {
+  // No ticket in branch name, exit without modifying
+  process.exit(0);
+}
+
+const ticket = ticketMatch[1];
+
+// Read current commit message
+let commitMsg = fs.readFileSync(commitMsgFile, 'utf-8');
+
+// Check if message already has a ticket prefix
+if (/^[A-Z]{2,10}-\d{2,10}/.test(commitMsg)) {
+  // Already has prefix, don't modify
+  process.exit(0);
+}
+
+// Prepend ticket to commit message
+const newMsg = `${ticket} ${commitMsg}`;
+fs.writeFileSync(commitMsgFile, newMsg);
+
+process.exit(0);

@@ -64,24 +64,52 @@ git-tag --dry-run
 # Shows what would change without modifying commits
 ```
 
-## Commit Message Enforcement
+## Git Hooks
 
-Install the git hook to enforce ticket prefixes:
+### 1. commit-msg (Enforce on Commit)
+
+Rejects commits without ticket prefixes:
 
 ```bash
-# In your project repository
 cp ~/Utils/git-tag/hooks/commit-msg .git/hooks/
 chmod +x .git/hooks/commit-msg
+
+git commit -m "Add feature"           # ❌ Rejected
+git commit -m "JIRA-123 Add feature"  # ✅ Accepted
 ```
 
-Now commits without prefixes will be rejected:
+### 2. pre-push (Warn Before Push) 🆕
+
+Warns if you're about to push commits without prefixes:
 
 ```bash
-git commit -m "Add feature"
-# ❌ Rejected: Missing ticket prefix
+cp ~/Utils/git-tag/hooks/pre-push .git/hooks/
+chmod +x .git/hooks/pre-push
 
-git commit -m "JIRA-123 Add feature"
-# ✅ Accepted
+git push  # ⚠️ Warns about unprefixed commits
+# Fix: git-tag --ticket=JIRA-123
+# Or bypass: git push --no-verify
+```
+
+### 3. prepare-commit-msg (Auto-Add Prefix) 🆕
+
+Automatically adds ticket prefix from branch name:
+
+```bash
+cp ~/Utils/git-tag/hooks/prepare-commit-msg .git/hooks/
+chmod +x .git/hooks/prepare-commit-msg
+
+# On branch feat/JIRA-123-new-feature
+git commit -m "Add feature"
+# Becomes: "JIRA-123 Add feature" automatically!
+```
+
+### Install All Hooks
+
+```bash
+# Install all three hooks at once
+cp ~/Utils/git-tag/hooks/* .git/hooks/
+chmod +x .git/hooks/commit-msg .git/hooks/pre-push .git/hooks/prepare-commit-msg
 ```
 
 ## Configuration
