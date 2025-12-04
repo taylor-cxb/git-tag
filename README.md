@@ -9,6 +9,11 @@ Automatically add ticket prefixes (JIRA-123, NFOR-456, etc.) to git commits on y
 - 🔧 **Custom prefixes** with `--prefix`
 - 🛡️ **Commit enforcement** via git hook
 - ⚙️ **Configurable format** in `src/config.ts`
+- 🔒 **Safety protections**:
+  - Automatically skips merge commits
+  - Warns if branch has been pushed to remote
+  - Cleans up git filter-branch backup refs
+  - Requires `--force` flag for pushed branches
 
 ## Installation
 
@@ -106,15 +111,60 @@ git-tag --prefix=HOTFIX_PROD
 
 1. **Detects current branch** and extracts ticket number
 2. **Finds commits** on current branch since divergence from main
-3. **Checks each commit** message for existing prefix
-4. **Rewrites commits** without prefix to add it
+3. **Automatically skips merge commits** to avoid rewriting merges
+4. **Checks for remote** - warns if branch has been pushed
+5. **Checks each commit** message for existing prefix
+6. **Rewrites commits** without prefix to add it
+7. **Cleans up backup refs** after successful rewrite
+
+## Safety Features
+
+### 1. Merge Commit Protection
+Merge commits are automatically skipped and never rewritten:
+```bash
+✓ Merge branch 'main' into feat/branch (skipped)
+```
+
+### 2. Remote Branch Warning
+If your branch has been pushed, the tool requires `--force`:
+```bash
+✗ This branch has been pushed to remote
+⚠️  Rewriting history will require force-push!
+
+To proceed: git-tag --ticket=JIRA-123 --force
+```
+
+### 3. Automatic Cleanup
+Backup refs created by git filter-branch are automatically removed after success.
+
+### 4. Clear Instructions
+The tool reminds you to force-push if the branch has a remote.
+
+## Best Practices
+
+1. **Use before first push** (safest)
+   ```bash
+   git commit -m "fix bug"
+   git-tag  # Add prefixes
+   git push  # Push once with clean history
+   ```
+
+2. **Don't use after merging main**
+   - Tool skips merge commits, but creates complexity
+   - Better: Tag before merging
+
+3. **Use --force carefully**
+   - Only when you understand the implications
+   - Communicate with team if others have the branch
 
 ## Roadmap
 
-- [ ] Implement commit rewriting (currently shows preview only)
+- [x] Commit rewriting with git filter-branch
+- [x] Skip merge commits automatically
+- [x] Warn about remote branches
+- [x] Clean up backup refs
 - [ ] Support for multiple ticket formats
 - [ ] Integration with Husky
-- [ ] Interactive mode to review each commit
 
 ## License
 
