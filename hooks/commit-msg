@@ -5,6 +5,17 @@
  * Enforces ticket prefix in commit messages
  *
  * Install: Copy to .git/hooks/commit-msg and chmod +x
+ *
+ * Debug: To view .git/ folder in VSCode (hidden by default):
+ *   1. Open VSCode Settings (Ctrl+,)
+ *   2. Search: "files.exclude"
+ *   3. Find "**/.git" and click ❌ to remove it
+ *   Or add to .vscode/settings.json:
+ *   {
+ *     "files.exclude": {
+ *       "**/.git": false
+ *     }
+ *   }
  */
 
 const fs = require('fs');
