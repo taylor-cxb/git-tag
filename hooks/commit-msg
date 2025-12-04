@@ -6,6 +6,12 @@
  *
  * Install: Copy to .git/hooks/commit-msg and chmod +x
  *
+ * Uninstall: Remove the hook file
+ *   rm .git/hooks/commit-msg
+ *
+ * Bypass (one-time): Use --no-verify flag
+ *   git commit --no-verify -m "message"
+ *
  * Debug: To view .git/ folder in VSCode (hidden by default):
  *   1. Open VSCode Settings (Ctrl+,)
  *   2. Search: "files.exclude"
