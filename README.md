@@ -96,9 +96,10 @@ chmod +x .git/hooks/commit-msg
 
 git commit -m "Add feature"           # ❌ Rejected
 git commit -m "JIRA-123 Add feature"  # ✅ Accepted
+# Or bypass: git commit -m "Add feature" --no-verify
 ```
 
-### 2. pre-push (Warn Before Push) 🆕
+### 2. pre-push (Warn Before Push)
 
 Warns if you're about to push commits without prefixes:
 
@@ -111,7 +112,7 @@ git push  # ⚠️ Warns about unprefixed commits
 # Or bypass: git push --no-verify
 ```
 
-### 3. prepare-commit-msg (Auto-Add Prefix) 🆕
+### 3. prepare-commit-msg (Auto-Add Prefix)
 
 Automatically adds ticket prefix from branch name:
 
