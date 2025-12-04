@@ -15,11 +15,11 @@
  * Debug: To view .git/ folder in VSCode (hidden by default):
  *   1. Open VSCode Settings (Ctrl+,)
  *   2. Search: "files.exclude"
- *   3. Find "**/.git" and click ❌ to remove it
+ *   3. Find "*\/*.git" and click ❌ to remove it
  *   Or add to .vscode/settings.json:
  *   {
  *     "files.exclude": {
- *       "**/.git": false
+ *       "*\/*.git": false
  *     }
  *   }
  */

@@ -98,15 +98,24 @@ async function main() {
 
     console.log(chalk.yellow(`${commitsToUpdate.length} commit(s) need prefix:\n`));
 
-    // Show what will be changed
-    commitsToUpdate.forEach(commit => {
-      const shortHash = commit.hash.substring(0, 7);
-      const newMessage = formatCommitMessage(prefix, commit.message);
+    // Show what will be changed (like rebase -i)
+    console.log(chalk.bold('Commits to be rewritten:\n'));
 
-      console.log(chalk.gray(`  ${shortHash}`));
-      console.log(chalk.red(`  - ${commit.message}`));
-      console.log(chalk.green(`  + ${newMessage}`));
+    let commitNumber = 1;
+    commits.forEach(commit => {
+      const hasTicket = hasPrefix(commit.message);
+
+      if (!hasTicket) {
+        const newMessage = formatCommitMessage(prefix, commit.message);
+        console.log(chalk.gray(`Commit ${commitNumber} of ${commits.length} (${commit.shortHash})`));
+        console.log(chalk.red(`  - ${commit.message}`));
+        console.log(chalk.green(`  + ${newMessage}`));
+      } else {
+        console.log(chalk.gray(`Commit ${commitNumber} of ${commits.length} (${commit.shortHash})`));
+        console.log(chalk.blue(`  ✓ ${commit.message} (already has prefix, skipped)`));
+      }
       console.log('');
+      commitNumber++;
     });
 
     if (options.dryRun) {
@@ -114,9 +123,29 @@ async function main() {
       process.exit(0);
     }
 
-    // TODO: Implement actual rewriting using git filter-branch or interactive rebase
-    console.log(chalk.yellow('⚠ Commit rewriting not yet implemented'));
-    console.log(chalk.gray('Use --dry-run to preview changes'));
+    // Ask for confirmation
+    const confirm = require('@inquirer/confirm').default;
+    const shouldRewrite = await confirm({
+      message: `Rewrite ${commitsToUpdate.length} commit(s) with prefix "${prefix}"?`,
+      default: false,
+    });
+
+    if (!shouldRewrite) {
+      console.log(chalk.gray('Aborted'));
+      process.exit(0);
+    }
+
+    // Import rewrite function
+    const { rewriteCommitMessages, findBaseBranch } = require('./git-utils');
+
+    // Perform the rewrite
+    console.log(chalk.blue('\n⚙ Rewriting commits...'));
+    const baseBranch = await findBaseBranch();
+    await rewriteCommitMessages(baseBranch, prefix);
+
+    console.log(chalk.green(`✓ Successfully rewrote ${commitsToUpdate.length} commit(s)!`));
+    console.log(chalk.gray('\nUse git log to verify the changes'));
+    console.log(chalk.yellow('Note: If you need to undo, use: git reflog and git reset --hard <commit>'));
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
